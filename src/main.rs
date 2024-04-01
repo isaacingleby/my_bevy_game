@@ -6,6 +6,10 @@ struct Person;
 #[derive(Component)]
 struct Name(String);
 
+fn setup_cam(mut commands: Commands) {
+    commands.spawn(Camera3dBundle::default());
+}
+
 fn add_people(mut commands: Commands) {
     commands.spawn((Person, Name("Elaina Proctor".to_string())));
     commands.spawn((Person, Name("Renzo Hume".to_string())));
@@ -37,7 +41,7 @@ pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, add_people)
+            .add_systems(Startup, (setup_cam, add_people))
             // chain allows us to specify the order of the systems running, otherwise they run in
             // parallel, with no guaranteed order
             .add_systems(Update, (update_people, greet_people).chain());
