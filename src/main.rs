@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_flycam::{NoCameraPlayerPlugin, FlyCam};
 
 #[derive(Component)]
 struct Person;
@@ -7,7 +8,7 @@ struct Person;
 struct Name(String);
 
 fn setup_cam(mut commands: Commands) {
-    commands.spawn(Camera3dBundle::default());
+    commands.spawn((Camera3dBundle::default(), FlyCam));
 }
 
 fn spawn_cubes(mut commands: Commands, mut mesh_assets: ResMut<Assets<Mesh>>) {
@@ -54,7 +55,7 @@ pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, (setup_cam, add_people))
+            .add_systems(Startup, (setup_cam, spawn_cubes, add_people).chain())
             // chain allows us to specify the order of the systems running, otherwise they run in
             // parallel, with no guaranteed order
             .add_systems(Update, (update_people, greet_people).chain());
@@ -62,5 +63,5 @@ impl Plugin for HelloPlugin {
 }
 
 fn main() {
-    App::new().add_plugins((DefaultPlugins, HelloPlugin)).run();
+    App::new().add_plugins((DefaultPlugins, NoCameraPlayerPlugin, HelloPlugin)).run();
 }
