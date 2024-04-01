@@ -10,6 +10,19 @@ fn setup_cam(mut commands: Commands) {
     commands.spawn(Camera3dBundle::default());
 }
 
+fn spawn_cubes(mut commands: Commands, mut mesh_assets: ResMut<Assets<Mesh>>) {
+    let mesh = mesh_assets.add(Cuboid::new(1.0, 1.0, 1.0));
+    for x in -10..10 {
+        for z in -10..10 {
+            commands.spawn(PbrBundle {
+                mesh: mesh.clone(),
+                transform: Transform::from_translation(Vec3::new(x as f32 * 2., 0., z as f32 * 2.)),
+                ..Default::default()
+            });
+        }
+    }
+}
+
 fn add_people(mut commands: Commands) {
     commands.spawn((Person, Name("Elaina Proctor".to_string())));
     commands.spawn((Person, Name("Renzo Hume".to_string())));
