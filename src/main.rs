@@ -1,5 +1,7 @@
 use bevy::prelude::*;
-use bevy_flycam::{NoCameraPlayerPlugin, FlyCam};
+use bevy::render::camera::ScalingMode;
+use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
+use bevy_flycam::NoCameraPlayerPlugin;
 
 #[derive(Component)]
 struct Person;
@@ -7,17 +9,33 @@ struct Person;
 #[derive(Component)]
 struct Name(String);
 
+#[derive(Component)]
+struct CameraMarker;
+
 fn setup_cam(mut commands: Commands) {
-    commands.spawn((Camera3dBundle::default(), FlyCam));
+    let mut camera_2d_bundle = Camera2dBundle::default();
+    // For this example, let's make the screen/window height correspond to
+    // 1600.0 world units. The width will depend on the aspect ratio.
+    camera_2d_bundle.projection.scaling_mode = ScalingMode::FixedVertical(720.0);
+    camera_2d_bundle.transform = Transform::from_xyz(0.0, 0.0, 0.0);
+
+    commands.spawn((camera_2d_bundle, CameraMarker));
 }
 
-fn spawn_cubes(mut commands: Commands, mut mesh_assets: ResMut<Assets<Mesh>>) {
-    let mesh = mesh_assets.add(Cuboid::new(1.0, 1.0, 1.0));
+fn spawn_squares(
+    mut commands: Commands,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mesh = Mesh2dHandle(mesh_assets.add(Rectangle::new(20.0, 20.0)));
+    let color = Color::hsl(0.5, 0.5, 0.5);
+
     for x in -10..10 {
-        for z in -10..10 {
-            commands.spawn(PbrBundle {
+        for y in -10..10 {
+            commands.spawn(MaterialMesh2dBundle {
                 mesh: mesh.clone(),
-                transform: Transform::from_translation(Vec3::new(x as f32 * 2., 0., z as f32 * 2.)),
+                material: materials.add(color),
+                transform: Transform::from_xyz(x as f32 * 30., y as f32 * 30., 100.),
                 ..Default::default()
             });
         }
@@ -55,7 +73,7 @@ pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, (setup_cam, spawn_cubes, add_people).chain())
+            .add_systems(Startup, (setup_cam, spawn_squares, add_people).chain())
             // chain allows us to specify the order of the systems running, otherwise they run in
             // parallel, with no guaranteed order
             .add_systems(Update, (update_people, greet_people).chain());
@@ -63,5 +81,7 @@ impl Plugin for HelloPlugin {
 }
 
 fn main() {
-    App::new().add_plugins((DefaultPlugins, NoCameraPlayerPlugin, HelloPlugin)).run();
+    App::new()
+        .add_plugins((DefaultPlugins, NoCameraPlayerPlugin, HelloPlugin))
+        .run();
 }
