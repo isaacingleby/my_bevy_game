@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy::render::camera::ScalingMode;
+use bevy::render::settings::{Backends, RenderCreation, WgpuSettings};
+use bevy::render::RenderPlugin;
 use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
 use bevy_flycam::NoCameraPlayerPlugin;
 
@@ -20,6 +22,16 @@ fn setup_cam(mut commands: Commands) {
     camera_2d_bundle.transform = Transform::from_xyz(0.0, 0.0, 0.0);
 
     commands.spawn((camera_2d_bundle, CameraMarker));
+}
+
+
+fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.spawn(SpriteBundle {
+        texture: asset_server.load("images/mouse_icon.png"),
+        // sprite: Sprite::new(Vec2::new(100.0, 100.0)),
+        transform: Transform::from_xyz(0.0, 0.0, 101.0),
+        ..default()
+    });
 }
 
 fn spawn_squares(
@@ -73,7 +85,11 @@ pub struct HelloPlugin;
 impl Plugin for HelloPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GreetTimer(Timer::from_seconds(2.0, TimerMode::Repeating)))
-            .add_systems(Startup, (setup_cam, spawn_squares, add_people).chain())
+            .insert_resource(ClearColor(Color::rgb(223., 215., 181.)))
+            .add_systems(
+                Startup,
+                (setup_cam, spawn_player, spawn_squares, add_people).chain(),
+            )
             // chain allows us to specify the order of the systems running, otherwise they run in
             // parallel, with no guaranteed order
             .add_systems(Update, (update_people, greet_people).chain());
@@ -82,6 +98,13 @@ impl Plugin for HelloPlugin {
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, NoCameraPlayerPlugin, HelloPlugin))
+        .add_plugins(DefaultPlugins.set(RenderPlugin {
+            render_creation: RenderCreation::Automatic(WgpuSettings {
+                backends: Some(Backends::DX12),
+                ..default()
+            }),
+            synchronous_pipeline_compilation: true, 
+        }))
+        .add_plugins((NoCameraPlayerPlugin, HelloPlugin))
         .run();
 }
