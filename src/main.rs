@@ -14,6 +14,9 @@ struct Name(String);
 #[derive(Component)]
 struct CameraMarker;
 
+#[derive(Component)]
+struct Player;
+
 fn setup_cam(mut commands: Commands) {
     let mut camera_2d_bundle = Camera2dBundle::default();
     // For this example, let's make the screen/window height correspond to
@@ -24,14 +27,46 @@ fn setup_cam(mut commands: Commands) {
     commands.spawn((camera_2d_bundle, CameraMarker));
 }
 
+const PLAYER_SPEED: f32 = 256.;
+
+fn player_movement(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut player_query: Query<&mut Transform, With<Player>>,
+    time: Res<Time>,
+) {
+    if let Ok(mut transform) = player_query.get_single_mut() {
+        let mut direction = Vec3::ZERO;
+        if keyboard_input.pressed(KeyCode::KeyW) {
+            direction += Vec3::new(0., 1., 0.);
+        }
+        if keyboard_input.pressed(KeyCode::KeyA) {
+            direction += Vec3::new(-1., 0., 0.);
+        }
+        if keyboard_input.pressed(KeyCode::KeyS) {
+            direction += Vec3::new(0., -1., 0.);
+        }
+        if keyboard_input.pressed(KeyCode::KeyD) {
+            direction += Vec3::new(1., 0., 0.);
+        }
+
+        if direction.length() > 0.0 {
+            direction = direction.normalize();
+        }
+        transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+    }
+}
+
 
 fn spawn_player(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(SpriteBundle {
-        texture: asset_server.load("images/mouse_icon.png"),
-        // sprite: Sprite::new(Vec2::new(100.0, 100.0)),
-        transform: Transform::from_xyz(0.0, 0.0, 101.0),
-        ..default()
-    });
+    commands.spawn((
+        Player,
+        SpriteBundle {
+            texture: asset_server.load("images/mouse_icon.png"),
+            // sprite: Sprite::new(Vec2::new(100.0, 100.0)),
+            transform: Transform::from_xyz(0.0, 0.0, 101.0),
+            ..default()
+        })
+    );
 }
 
 fn spawn_squares(
@@ -92,13 +127,14 @@ impl Plugin for HelloPlugin {
             )
             // chain allows us to specify the order of the systems running, otherwise they run in
             // parallel, with no guaranteed order
-            .add_systems(Update, (update_people, greet_people).chain());
+            .add_systems(Update, (update_people, greet_people).chain())
+            .add_systems(Update, player_movement);
     }
 }
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(RenderPlugin {
+        .add_plugins(DefaultPlugins.set(RenderPlugin {  // Use Dx12 to avoid AMD error
             render_creation: RenderCreation::Automatic(WgpuSettings {
                 backends: Some(Backends::DX12),
                 ..default()
